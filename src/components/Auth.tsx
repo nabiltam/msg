@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged, db, doc, setDoc, serverTimestamp, onSnapshot, updateDoc } from '../firebase';
-import { LogIn, LogOut, User as UserIcon, Settings, Check, X } from 'lucide-react';
+import { signInAnonymously } from 'firebase/auth';
+import { LogIn, LogOut, User as UserIcon, Settings, Check, X, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
@@ -10,6 +11,7 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
   const [editName, setEditName] = useState('');
   const [editPhoto, setEditPhoto] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubscribeDoc: () => void;
@@ -18,16 +20,15 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
       if (currentUser) {
         const userRef = doc(db, 'users', currentUser.uid);
         
-        // Initial sync from Auth to Firestore if doc doesn't exist
-        const docSnap = await setDoc(userRef, {
+        // Initial sync
+        await setDoc(userRef, {
           uid: currentUser.uid,
-          displayName: currentUser.displayName,
-          photoURL: currentUser.photoURL,
+          displayName: currentUser.displayName || `Guest_${currentUser.uid.slice(0, 4)}`,
+          photoURL: currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.uid}`,
           lastSeen: serverTimestamp(),
           isOnline: true
         }, { merge: true });
 
-        // Listen to Firestore doc for real-time profile updates
         unsubscribeDoc = onSnapshot(userRef, (doc) => {
           if (doc.exists()) {
             const userData = doc.data();
@@ -50,6 +51,32 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
       if (unsubscribeDoc) unsubscribeDoc();
     };
   }, [onUserChange]);
+
+  const handleGoogleLogin = async () => {
+    setError(null);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
+      console.error("Google Login failed:", error);
+      if (error.code === 'auth/popup-blocked') {
+        setError("Popup blocked! Please allow popups or try 'Guest Login' below.");
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setError("Domain not authorized. Use 'Guest Login' to test the app now.");
+      } else {
+        setError("Google Login issue. Try 'Guest Login' as a faster alternative.");
+      }
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setError(null);
+    try {
+      await signInAnonymously(auth);
+    } catch (error: any) {
+      console.error("Guest Login failed:", error);
+      setError("Guest Login failed. Please check your internet connection.");
+    }
+  };
 
   const handleLogout = async () => {
     if (user) {
@@ -76,51 +103,60 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
     }
   };
 
-  const [error, setError] = useState<string | null>(null);
-
-  const handleLogin = async () => {
-    setError(null);
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
-      console.error("Login failed:", error);
-      if (error.code === 'auth/popup-blocked') {
-        setError("Popup was blocked by your browser. Please allow popups for this site.");
-      } else if (error.code === 'auth/unauthorized-domain') {
-        setError("This domain is not authorized for login. Please check your Firebase settings.");
-      } else {
-        setError(error.message || "An unexpected error occurred during login.");
-      }
-    }
-  };
-
-  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen bg-neutral-50">
+    <div className="w-8 h-8 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+  </div>;
 
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-neutral-50 p-6 text-center">
-        <div className="w-20 h-20 bg-neutral-900 rounded-full flex items-center justify-center mb-8 shadow-xl">
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-20 h-20 bg-neutral-900 rounded-full flex items-center justify-center mb-8 shadow-xl"
+        >
           <UserIcon className="w-10 h-10 text-white" />
-        </div>
+        </motion.div>
         <h1 className="text-4xl font-light tracking-tight text-neutral-900 mb-2">Pulse Connect</h1>
         <p className="text-neutral-500 mb-8 max-w-xs font-light">Minimalist instant messaging focused on digital presence.</p>
         
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-medium max-w-xs">
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-[11px] font-medium max-w-xs"
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
-        <button
-          onClick={handleLogin}
-          className="flex items-center gap-3 px-8 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-all shadow-lg hover:shadow-xl active:scale-95"
-        >
-          <LogIn className="w-5 h-5" />
-          <span className="font-medium">Sign in with Google</span>
-        </button>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={handleGoogleLogin}
+            className="flex items-center justify-center gap-3 px-8 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-all shadow-lg active:scale-95"
+          >
+            <LogIn className="w-5 h-5" />
+            <span className="font-medium">Sign in with Google</span>
+          </button>
+          
+          <div className="flex items-center gap-4 my-2">
+            <div className="h-[1px] flex-1 bg-neutral-200" />
+            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Or</span>
+            <div className="h-[1px] flex-1 bg-neutral-200" />
+          </div>
+
+          <button
+            onClick={handleGuestLogin}
+            className="flex items-center justify-center gap-3 px-8 py-4 bg-white border border-neutral-200 text-neutral-900 rounded-full hover:bg-neutral-50 transition-all shadow-sm active:scale-95"
+          >
+            <UserCircle className="w-5 h-5" />
+            <span className="font-medium">Guest Login (Fast)</span>
+          </button>
+        </div>
         
-        <p className="mt-8 text-[10px] text-neutral-400 uppercase tracking-widest font-bold">
-          Make sure popups are enabled
+        <p className="mt-8 text-[10px] text-neutral-400 uppercase tracking-widest font-bold leading-relaxed">
+          If Google fails, use Guest Login.<br/>
+          Popups must be enabled.
         </p>
       </div>
     );
