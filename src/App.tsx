@@ -47,7 +47,7 @@ export default function App() {
       
       {currentUser && (
         <main className="max-w-xl mx-auto pt-8 pb-24">
-          <div className="px-6 mb-12">
+          <div className="px-6 mb-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -55,67 +55,26 @@ export default function App() {
             >
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-neutral-400">
-                Pulse Network Active
+                Pulse Room Live
               </span>
             </motion.div>
             <h1 className="text-5xl font-light tracking-tight text-neutral-900">
-              Pulse Connect
+              The Pulse Room
             </h1>
             <p className="text-neutral-500 mt-4 font-light max-w-sm leading-relaxed">
-              Real-time presence and private messaging for small groups. 
-              Your status is visible only when you're here.
+              A unified space where everyone connects. See who's here and join the conversation instantly.
             </p>
           </div>
 
-          {/* Tab Toggle */}
-          <div className="flex gap-2 px-6 mb-6">
-            <button
-              onClick={() => setActiveTab('private')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${
-                activeTab === 'private' 
-                ? 'bg-neutral-900 text-white shadow-lg' 
-                : 'bg-white text-neutral-400 border border-neutral-100 hover:bg-neutral-50'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              Private Pulse
-            </button>
-            <button
-              onClick={() => setActiveTab('global')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${
-                activeTab === 'global' 
-                ? 'bg-neutral-900 text-white shadow-lg' 
-                : 'bg-white text-neutral-400 border border-neutral-100 hover:bg-neutral-50'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              Global Pulse
-            </button>
-          </div>
+          <div className="space-y-6 px-4">
+            {/* Presence Bar */}
+            <div className="bg-white rounded-3xl shadow-sm border border-neutral-100 p-4">
+              <PresenceList currentUser={currentUser} onSelectUser={setSelectedUser} />
+            </div>
 
-          <AnimatePresence mode="wait">
-            {activeTab === 'private' ? (
-              <motion.div
-                key="private"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="bg-white rounded-[32px] shadow-sm border border-neutral-100 overflow-hidden mx-4"
-              >
-                <PresenceList currentUser={currentUser} onSelectUser={setSelectedUser} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="global"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="mx-4"
-              >
-                <GlobalPulse currentUser={currentUser} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+            {/* Global Chat */}
+            <GlobalPulse currentUser={currentUser} />
+          </div>
 
           <div className="grid grid-cols-3 gap-4 px-6 mt-12">
             <div className="flex flex-col items-center gap-2 text-center p-4 rounded-3xl bg-neutral-100/50">
