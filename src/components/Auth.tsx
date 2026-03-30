@@ -51,14 +51,6 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
     };
   }, [onUserChange]);
 
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Login failed:", error);
-    }
-  };
-
   const handleLogout = async () => {
     if (user) {
       const userRef = doc(db, 'users', user.uid);
@@ -84,6 +76,24 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
     }
   };
 
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = async () => {
+    setError(null);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      if (error.code === 'auth/popup-blocked') {
+        setError("Popup was blocked by your browser. Please allow popups for this site.");
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setError("This domain is not authorized for login. Please check your Firebase settings.");
+      } else {
+        setError(error.message || "An unexpected error occurred during login.");
+      }
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
   if (!user) {
@@ -93,7 +103,14 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
           <UserIcon className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-4xl font-light tracking-tight text-neutral-900 mb-2">Pulse Connect</h1>
-        <p className="text-neutral-500 mb-12 max-w-xs font-light">Minimalist instant messaging focused on digital presence.</p>
+        <p className="text-neutral-500 mb-8 max-w-xs font-light">Minimalist instant messaging focused on digital presence.</p>
+        
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-medium max-w-xs">
+            {error}
+          </div>
+        )}
+
         <button
           onClick={handleLogin}
           className="flex items-center gap-3 px-8 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-all shadow-lg hover:shadow-xl active:scale-95"
@@ -101,6 +118,10 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
           <LogIn className="w-5 h-5" />
           <span className="font-medium">Sign in with Google</span>
         </button>
+        
+        <p className="mt-8 text-[10px] text-neutral-400 uppercase tracking-widest font-bold">
+          Make sure popups are enabled
+        </p>
       </div>
     );
   }
