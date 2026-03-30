@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged, db, doc, setDoc, serverTimestamp, onSnapshot, updateDoc } from '../firebase';
+import { auth, signOut, onAuthStateChanged, db, doc, setDoc, serverTimestamp, onSnapshot, updateDoc } from '../firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { LogIn, LogOut, User as UserIcon, Settings, Check, X, UserCircle } from 'lucide-react';
+import { LogOut, User as UserIcon, Settings, Check, X, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
@@ -52,22 +52,6 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
     };
   }, [onUserChange]);
 
-  const handleGoogleLogin = async () => {
-    setError(null);
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
-      console.error("Google Login failed:", error);
-      if (error.code === 'auth/popup-blocked') {
-        setError("Popup blocked! Please allow popups or try 'Guest Login' below.");
-      } else if (error.code === 'auth/unauthorized-domain') {
-        setError("Domain not authorized. Use 'Guest Login' to test the app now.");
-      } else {
-        setError("Google Login issue. Try 'Guest Login' as a faster alternative.");
-      }
-    }
-  };
-
   const handleGuestLogin = async () => {
     setError(null);
     try {
@@ -113,12 +97,22 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="w-20 h-20 bg-neutral-900 rounded-full flex items-center justify-center mb-8 shadow-xl"
+          className="w-24 h-24 bg-neutral-900 rounded-full flex items-center justify-center mb-8 shadow-2xl"
         >
-          <UserIcon className="w-10 h-10 text-white" />
+          <div className="relative">
+            <UserIcon className="w-12 h-12 text-white" />
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute inset-0 bg-white rounded-full"
+            />
+          </div>
         </motion.div>
-        <h1 className="text-4xl font-light tracking-tight text-neutral-900 mb-2">Pulse Connect</h1>
-        <p className="text-neutral-500 mb-8 max-w-xs font-light">Minimalist instant messaging focused on digital presence.</p>
+        <h1 className="text-5xl font-light tracking-tighter text-neutral-900 mb-3">Pulse</h1>
+        <p className="text-neutral-500 mb-12 max-w-xs font-light leading-relaxed">
+          Instant presence. Minimalist chat.<br/>
+          No email required.
+        </p>
         
         {error && (
           <motion.div 
@@ -130,33 +124,16 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
           </motion.div>
         )}
 
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          <button
-            onClick={handleGoogleLogin}
-            className="flex items-center justify-center gap-3 px-8 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-all shadow-lg active:scale-95"
-          >
-            <LogIn className="w-5 h-5" />
-            <span className="font-medium">Sign in with Google</span>
-          </button>
-          
-          <div className="flex items-center gap-4 my-2">
-            <div className="h-[1px] flex-1 bg-neutral-200" />
-            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Or</span>
-            <div className="h-[1px] flex-1 bg-neutral-200" />
-          </div>
-
-          <button
-            onClick={handleGuestLogin}
-            className="flex items-center justify-center gap-3 px-8 py-4 bg-white border border-neutral-200 text-neutral-900 rounded-full hover:bg-neutral-50 transition-all shadow-sm active:scale-95"
-          >
-            <UserCircle className="w-5 h-5" />
-            <span className="font-medium">Guest Login (Fast)</span>
-          </button>
-        </div>
+        <button
+          onClick={handleGuestLogin}
+          className="group relative flex items-center justify-center gap-3 px-12 py-5 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-all shadow-xl active:scale-95 overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <span className="font-semibold tracking-wide">Enter Pulse Chat</span>
+        </button>
         
-        <p className="mt-8 text-[10px] text-neutral-400 uppercase tracking-widest font-bold leading-relaxed">
-          If Google fails, use Guest Login.<br/>
-          Popups must be enabled.
+        <p className="mt-12 text-[9px] text-neutral-400 uppercase tracking-[0.3em] font-bold">
+          Privacy First • No Tracking
         </p>
       </div>
     );

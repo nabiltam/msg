@@ -3,6 +3,7 @@ import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, se
 import { Send, X, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
+import { cn } from '../lib/utils';
 
 export function ChatWindow({ currentUser, targetUser, onClose }: { currentUser: any, targetUser: any, onClose: () => void }) {
   const [messages, setMessages] = useState<any[]>([]);
@@ -81,53 +82,80 @@ export function ChatWindow({ currentUser, targetUser, onClose }: { currentUser: 
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50/20">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-neutral-50/30">
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => {
             const isMe = msg.senderId === currentUser.uid;
-            const showTime = idx === 0 || (msg.createdAt?.seconds - messages[idx-1].createdAt?.seconds > 300);
+            const prevMsg = messages[idx - 1];
+            const nextMsg = messages[idx + 1];
+            
+            const isFirstInGroup = !prevMsg || prevMsg.senderId !== msg.senderId;
+            const isLastInGroup = !nextMsg || nextMsg.senderId !== msg.senderId;
+            const showTime = !prevMsg || (msg.createdAt?.seconds - prevMsg.createdAt?.seconds > 600);
             
             return (
               <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                 {showTime && msg.createdAt && (
-                  <span className="text-[9px] text-neutral-400 uppercase tracking-widest mb-2 mt-4 self-center">
-                    {format(msg.createdAt.toDate(), 'p')}
-                  </span>
+                  <div className="w-full flex justify-center my-6">
+                    <span className="px-3 py-1 bg-neutral-200/50 text-neutral-500 text-[9px] uppercase tracking-[0.2em] font-bold rounded-full">
+                      {format(msg.createdAt.toDate(), 'EEEE, p')}
+                    </span>
+                  </div>
                 )}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, x: isMe ? 10 : -10 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  className={`max-w-[80%] p-3 rounded-2xl text-sm ${
-                    isMe 
-                      ? 'bg-neutral-900 text-white rounded-tr-none' 
-                      : 'bg-white text-neutral-900 border border-neutral-100 rounded-tl-none shadow-sm'
-                  }`}
-                >
-                  {msg.text}
-                </motion.div>
+                
+                <div className={`group relative flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[85%]`}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 5 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className={cn(
+                      "px-4 py-3 text-sm leading-relaxed shadow-sm transition-all",
+                      isMe 
+                        ? "bg-neutral-900 text-white" 
+                        : "bg-white text-neutral-900 border border-neutral-100",
+                      isFirstInGroup && isMe && "rounded-2xl rounded-tr-none",
+                      isFirstInGroup && !isMe && "rounded-2xl rounded-tl-none",
+                      !isFirstInGroup && isMe && "rounded-2xl rounded-tr-none rounded-br-none",
+                      !isFirstInGroup && !isMe && "rounded-2xl rounded-tl-none rounded-bl-none",
+                      isLastInGroup && isMe && "rounded-br-2xl",
+                      isLastInGroup && !isMe && "rounded-bl-2xl",
+                      !isFirstInGroup && !isLastInGroup && "rounded-2xl"
+                    )}
+                  >
+                    {msg.text}
+                  </motion.div>
+                  
+                  {isLastInGroup && msg.createdAt && (
+                    <span className={cn(
+                      "text-[9px] text-neutral-400 mt-1 font-medium",
+                      isMe ? "mr-1" : "ml-1"
+                    )}>
+                      {format(msg.createdAt.toDate(), 'p')}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}
         </AnimatePresence>
-        <div ref={scrollRef} />
+        <div ref={scrollRef} className="h-2" />
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-neutral-100">
-        <div className="relative flex items-center">
+      <form onSubmit={handleSendMessage} className="p-6 bg-white border-t border-neutral-100">
+        <div className="relative flex items-center gap-3">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="w-full pl-4 pr-12 py-3 bg-neutral-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-200 transition-all"
+            placeholder="Write a message..."
+            className="flex-1 px-5 py-4 bg-neutral-100 rounded-[20px] text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/5 transition-all placeholder:text-neutral-400"
           />
           <button
             type="submit"
             disabled={!newMessage.trim()}
-            className="absolute right-2 p-2 bg-neutral-900 text-white rounded-xl disabled:opacity-50 disabled:bg-neutral-400 transition-all active:scale-90"
+            className="p-4 bg-neutral-900 text-white rounded-full disabled:opacity-20 disabled:grayscale transition-all active:scale-90 shadow-lg shadow-neutral-900/10"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-5 h-5" />
           </button>
         </div>
       </form>

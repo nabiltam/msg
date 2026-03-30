@@ -1,12 +1,11 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, onSnapshot, serverTimestamp, updateDoc, addDoc, orderBy, limit, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const googleProvider = new GoogleAuthProvider();
 
 // Presence Heartbeat
 export const updatePresence = async (uid: string, isOnline: boolean) => {
@@ -33,4 +32,4 @@ async function testConnection() {
 }
 testConnection();
 
-export { signInWithPopup, onAuthStateChanged, signOut, doc, setDoc, getDoc, collection, query, where, onSnapshot, serverTimestamp, updateDoc, addDoc, orderBy, limit };
+export { onAuthStateChanged, signOut, doc, setDoc, getDoc, collection, query, where, onSnapshot, serverTimestamp, updateDoc, addDoc, orderBy, limit };
