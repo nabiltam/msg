@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setDoc, doc, limit } from '../firebase';
+import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setDoc, doc, limit, handleFirestoreError, OperationType } from '../firebase';
 import { Send, X, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -25,9 +25,7 @@ export function ChatWindow({ currentUser, targetUser, onClose }: { currentUser: 
       const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setMessages(msgs.reverse());
     }, (error) => {
-      console.error("Firestore Subscription Error:", error);
-      // If permission denied, it might be because the conversation doesn't exist yet
-      // The rules are now updated to handle this, but we log it just in case.
+      handleFirestoreError(error, OperationType.GET, `conversations/${conversationId}/messages`);
     });
 
     return () => unsubscribe();
@@ -43,29 +41,6 @@ export function ChatWindow({ currentUser, targetUser, onClose }: { currentUser: 
 
     const text = newMessage.trim();
     setNewMessage('');
-
-    const OperationType = {
-      CREATE: 'create',
-      UPDATE: 'update',
-      DELETE: 'delete',
-      LIST: 'list',
-      GET: 'get',
-      WRITE: 'write',
-    };
-
-    const handleFirestoreError = (error: any, operationType: string, path: string) => {
-      const errInfo = {
-        error: error instanceof Error ? error.message : String(error),
-        authInfo: {
-          userId: currentUser?.uid,
-          email: currentUser?.email,
-        },
-        operationType,
-        path
-      };
-      console.error('Firestore Error: ', JSON.stringify(errInfo));
-      alert(`Failed to send message: ${error.message || 'Unknown error'}`);
-    };
 
     try {
       const convRef = doc(db, 'conversations', conversationId);

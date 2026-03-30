@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit } from '../firebase';
+import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, limit, handleFirestoreError, OperationType } from '../firebase';
 import { Send, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -19,6 +19,8 @@ export function GlobalPulse({ currentUser }: { currentUser: any }) {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setMessages(msgs.reverse());
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'global_messages');
     });
 
     return () => unsubscribe();
@@ -44,7 +46,7 @@ export function GlobalPulse({ currentUser }: { currentUser: any }) {
         createdAt: serverTimestamp()
       });
     } catch (error) {
-      console.error("Error sending global message:", error);
+      handleFirestoreError(error, OperationType.WRITE, 'global_messages');
     }
   };
 

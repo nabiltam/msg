@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, signOut, onAuthStateChanged, db, doc, setDoc, serverTimestamp, onSnapshot, updateDoc } from '../firebase';
+import { auth, signOut, onAuthStateChanged, db, doc, setDoc, serverTimestamp, onSnapshot, updateDoc, handleFirestoreError, OperationType } from '../firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { LogOut, User as UserIcon, Settings, Check, X, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -21,13 +21,17 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
         const userRef = doc(db, 'users', currentUser.uid);
         
         // Initial sync
-        await setDoc(userRef, {
-          uid: currentUser.uid,
-          displayName: currentUser.displayName || `Guest_${currentUser.uid.slice(0, 4)}`,
-          photoURL: currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.uid}`,
-          lastSeen: serverTimestamp(),
-          isOnline: true
-        }, { merge: true });
+        try {
+          await setDoc(userRef, {
+            uid: currentUser.uid,
+            displayName: currentUser.displayName || `Guest_${currentUser.uid.slice(0, 4)}`,
+            photoURL: currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.uid}`,
+            lastSeen: serverTimestamp(),
+            isOnline: true
+          }, { merge: true });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.WRITE, `users/${currentUser.uid}`);
+        }
 
         unsubscribeDoc = onSnapshot(userRef, (doc) => {
           if (doc.exists()) {
@@ -37,6 +41,8 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
             setEditName(userData.displayName || '');
             setEditPhoto(userData.photoURL || '');
           }
+        }, (error) => {
+          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
         });
       } else {
         setUser(null);
@@ -65,7 +71,11 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
   const handleLogout = async () => {
     if (user) {
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { isOnline: false, lastSeen: serverTimestamp() });
+      try {
+        await updateDoc(userRef, { isOnline: false, lastSeen: serverTimestamp() });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+      }
       await signOut(auth);
     }
   };
@@ -81,7 +91,7 @@ export function Auth({ onUserChange }: { onUserChange: (user: any) => void }) {
       });
       setIsEditing(false);
     } catch (error) {
-      console.error("Failed to update profile:", error);
+      handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
     } finally {
       setSaving(false);
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db, collection, onSnapshot, query, orderBy, limit } from '../firebase';
+import { db, collection, onSnapshot, query, orderBy, limit, handleFirestoreError, OperationType } from '../firebase';
 import { PulseIcon } from './PulseIcon';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -19,6 +19,8 @@ export function PresenceList({ currentUser, onSelectUser }: { currentUser: any, 
         .map(doc => doc.data())
         .filter(u => u.uid !== currentUser.uid);
       setUsers(usersList);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'users');
     });
     return () => unsubscribe();
   }, [currentUser.uid]);
