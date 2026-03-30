@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setDoc, doc } from '../firebase';
+import { db, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setDoc, doc, limit } from '../firebase';
 import { Send, X, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -14,10 +14,20 @@ export function ChatWindow({ currentUser, targetUser, onClose }: { currentUser: 
 
   useEffect(() => {
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-    const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    const q = query(
+      messagesRef, 
+      orderBy('createdAt', 'desc'), // Use desc to get the latest messages
+      limit(50)
+    );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      // Since we used 'desc' to get the latest, we need to reverse the list for display
+      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMessages(msgs.reverse());
+    }, (error) => {
+      console.error("Firestore Subscription Error:", error);
+      // If permission denied, it might be because the conversation doesn't exist yet
+      // The rules are now updated to handle this, but we log it just in case.
     });
 
     return () => unsubscribe();
@@ -34,21 +44,53 @@ export function ChatWindow({ currentUser, targetUser, onClose }: { currentUser: 
     const text = newMessage.trim();
     setNewMessage('');
 
+    const OperationType = {
+      CREATE: 'create',
+      UPDATE: 'update',
+      DELETE: 'delete',
+      LIST: 'list',
+      GET: 'get',
+      WRITE: 'write',
+    };
+
+    const handleFirestoreError = (error: any, operationType: string, path: string) => {
+      const errInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        authInfo: {
+          userId: currentUser?.uid,
+          email: currentUser?.email,
+        },
+        operationType,
+        path
+      };
+      console.error('Firestore Error: ', JSON.stringify(errInfo));
+      alert(`Failed to send message: ${error.message || 'Unknown error'}`);
+    };
+
     try {
       const convRef = doc(db, 'conversations', conversationId);
-      await setDoc(convRef, {
-        participants: [currentUser.uid, targetUser.uid],
-        lastMessage: text,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      try {
+        await setDoc(convRef, {
+          participants: [currentUser.uid, targetUser.uid],
+          lastMessage: text,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `conversations/${conversationId}`);
+        return;
+      }
 
       const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-      await addDoc(messagesRef, {
-        text,
-        senderId: currentUser.uid,
-        createdAt: serverTimestamp(),
-        conversationId
-      });
+      try {
+        await addDoc(messagesRef, {
+          text,
+          senderId: currentUser.uid,
+          createdAt: serverTimestamp(),
+          conversationId
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.CREATE, `conversations/${conversationId}/messages`);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }

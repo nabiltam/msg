@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db, collection, onSnapshot, query, orderBy } from '../firebase';
+import { db, collection, onSnapshot, query, orderBy, limit } from '../firebase';
 import { PulseIcon } from './PulseIcon';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -8,7 +8,12 @@ export function PresenceList({ currentUser, onSelectUser }: { currentUser: any, 
   const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'users'), orderBy('isOnline', 'desc'), orderBy('displayName', 'asc'));
+    const q = query(
+      collection(db, 'users'), 
+      orderBy('isOnline', 'desc'), 
+      orderBy('displayName', 'asc'),
+      limit(20) // Limit to 20 users to save quota
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const usersList = snapshot.docs
         .map(doc => doc.data())
