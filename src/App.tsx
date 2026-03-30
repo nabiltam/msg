@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { Auth } from './components/Auth';
 import { PresenceList } from './components/PresenceList';
 import { ChatWindow } from './components/ChatWindow';
+import { GlobalPulse } from './components/GlobalPulse';
 import { updatePresence } from './firebase';
 import { AnimatePresence, motion } from 'motion/react';
-import { MessageSquare, Users, Shield } from 'lucide-react';
+import { MessageSquare, Users, Shield, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'private' | 'global'>('private');
 
   useEffect(() => {
     if (!currentUser) return;
@@ -65,9 +67,55 @@ export default function App() {
             </p>
           </div>
 
-          <div className="bg-white rounded-[32px] shadow-sm border border-neutral-100 overflow-hidden mx-4">
-            <PresenceList currentUser={currentUser} onSelectUser={setSelectedUser} />
+          {/* Tab Toggle */}
+          <div className="flex gap-2 px-6 mb-6">
+            <button
+              onClick={() => setActiveTab('private')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${
+                activeTab === 'private' 
+                ? 'bg-neutral-900 text-white shadow-lg' 
+                : 'bg-white text-neutral-400 border border-neutral-100 hover:bg-neutral-50'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Private Pulse
+            </button>
+            <button
+              onClick={() => setActiveTab('global')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${
+                activeTab === 'global' 
+                ? 'bg-neutral-900 text-white shadow-lg' 
+                : 'bg-white text-neutral-400 border border-neutral-100 hover:bg-neutral-50'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              Global Pulse
+            </button>
           </div>
+
+          <AnimatePresence mode="wait">
+            {activeTab === 'private' ? (
+              <motion.div
+                key="private"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="bg-white rounded-[32px] shadow-sm border border-neutral-100 overflow-hidden mx-4"
+              >
+                <PresenceList currentUser={currentUser} onSelectUser={setSelectedUser} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="global"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="mx-4"
+              >
+                <GlobalPulse currentUser={currentUser} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="grid grid-cols-3 gap-4 px-6 mt-12">
             <div className="flex flex-col items-center gap-2 text-center p-4 rounded-3xl bg-neutral-100/50">

@@ -35,12 +35,29 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["participants", "updatedAt"]
+    },
+    "GlobalMessage": {
+      "title": "Global Message",
+      "description": "A message in the public global room",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderPhoto": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "senderId", "createdAt"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
       "description": "Individual user profiles"
+    },
+    "/global_messages/{msgId}": {
+      "schema": "GlobalMessage",
+      "description": "Messages in the public room"
     },
     "/conversations/{convId}": {
       "schema": "Conversation",
